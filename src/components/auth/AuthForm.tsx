@@ -1,119 +1,145 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useAuthStore } from '../../store/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
+import { Icons } from '@/components/ui/icons';
 
-export const AuthForm = () => {
-  const [isLogin, setIsLogin] = useState(true);
+export function AuthForm() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [error, setError] = useState('');
-  const { signIn, signUp } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const { signIn, signUp, loading, error } = useAuthStore();
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: error.message || "An error occurred during authentication",
+      });
+    }
+  }, [error, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
+
     try {
-      if (isLogin) {
-        await signIn(email, password);
-      } else {
+      if (isSignUp) {
         await signUp(email, password, username);
+        toast({
+          title: "Account created",
+          description: "Please check your email to verify your account.",
+        });
+      } else {
+        await signIn(email, password);
+        // Get the redirect path from location state, or default to dashboard
+        const from = (location.state as any)?.from?.pathname || '/';
+        navigate(from, { replace: true });
       }
-      navigate('/app');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      // Error will be handled by the error effect above
+      console.error('Authentication error:', err);
     }
   };
 
-  const handleBypassAuth = () => {
-    localStorage.setItem('bypassAuth', 'true');
-    navigate('/app');
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {!isLogin && (
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-200">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              required={!isLogin}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white px-4 py-2 focus:ring-2 focus:ring-indigo-500"
-            />
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isSignUp ? 'Create an account' : 'Welcome back'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isSignUp
+              ? 'Enter your details to create your account'
+              : 'Enter your credentials to sign in'}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                id="email"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Input
+                id="password"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
           </div>
-        )}
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-200">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white px-4 py-2 focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-200">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white px-4 py-2 focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        {error && (
-          <p className="text-red-500 text-sm">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          className="w-full flex justify-center py-3 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors"
-        >
-          {isLogin ? 'Sign In' : 'Sign Up'}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleBypassAuth}
-          className="w-full flex justify-center py-3 px-4 rounded-lg bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors"
-        >
-          Bypass Authentication (Test Mode)
-        </button>
-
-        <p className="text-center text-sm text-gray-400">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-indigo-400 hover:text-indigo-300"
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
           >
-            {isLogin ? 'Sign Up' : 'Sign In'}
-          </button>
-        </p>
-      </form>
-    </motion.div>
+            {loading ? (
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                {isSignUp ? 'Creating account...' : 'Signing in...'}
+              </>
+            ) : (
+              isSignUp ? 'Create account' : 'Sign in'
+            )}
+          </Button>
+        </form>
+
+        <div className="text-center text-sm">
+          {isSignUp ? (
+            <Button
+              variant="link"
+              className="text-primary"
+              onClick={() => setIsSignUp(false)}
+            >
+              Already have an account? Sign in
+            </Button>
+          ) : (
+            <Button
+              variant="link"
+              className="text-primary"
+              onClick={() => setIsSignUp(true)}
+            >
+              Don't have an account? Sign up
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
-};
+}

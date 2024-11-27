@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
-import { createCheckoutSession } from '../../lib/stripe';
-import { useAuthStore } from '../../store/authStore';
+
+interface PricingSectionProps {
+  onSelectPlan: (priceId: string) => void;
+}
 
 const plans = [
   {
@@ -44,105 +46,82 @@ const plans = [
   }
 ];
 
-export const PricingSection = () => {
-  const { user } = useAuthStore();
-  const [loading, setLoading] = React.useState<string | null>(null);
-
-  const handleSubscribe = async (priceId: string) => {
-    if (!user) {
-      alert('Please sign in to subscribe');
-      return;
-    }
-
-    try {
-      setLoading(priceId);
-      const checkoutUrl = await createCheckoutSession(priceId);
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout process');
-    } finally {
-      setLoading(null);
-    }
-  };
-
+export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan }) => {
   return (
-    <section className="py-24 bg-gray-900">
+    <div className="py-24 bg-gradient-to-b from-black to-gray-900" id="pricing">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            className="text-4xl font-bold text-white mb-4"
+            viewport={{ once: true }}
+            className="text-3xl font-extrabold text-white sm:text-4xl"
           >
             Choose Your Plan
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-xl text-gray-400"
+            className="mt-4 text-xl text-gray-300"
           >
-            Get started with our flexible pricing options
+            Select the perfect plan for your creative needs
           </motion.p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="mt-16 grid gap-8 lg:grid-cols-3 lg:gap-x-8">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className={`relative p-8 rounded-2xl ${
-                plan.popular ? 'bg-indigo-600' : 'bg-gray-800'
+              className={`relative p-8 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-xl flex flex-col ${
+                plan.popular ? 'ring-2 ring-indigo-500' : ''
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-400 text-white px-3 py-1 rounded-full text-sm">
-                  Most Popular
-                </span>
+                <div className="absolute top-0 right-0 -translate-y-1/2 transform">
+                  <span className="inline-flex rounded-full bg-indigo-500 px-4 py-1 text-sm font-semibold text-white">
+                    Popular
+                  </span>
+                </div>
               )}
 
-              <h3 className={`text-2xl font-bold ${plan.popular ? 'text-white' : 'text-gray-100'}`}>
-                {plan.name}
-              </h3>
-              
-              <div className="mt-4 mb-8">
-                <span className={`text-4xl font-bold ${plan.popular ? 'text-white' : 'text-gray-100'}`}>
-                  ${plan.price}
-                </span>
-                <span className={`text-sm ${plan.popular ? 'text-indigo-200' : 'text-gray-400'}`}>
-                  /month
-                </span>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
+                <p className="mt-4 flex items-baseline text-white">
+                  <span className="text-5xl font-extrabold tracking-tight">${plan.price}</span>
+                  <span className="ml-1 text-xl font-semibold">/month</span>
+                </p>
+                <ul className="mt-6 space-y-4">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex text-base text-gray-300">
+                      <Check className="h-6 w-6 text-indigo-400 mr-2" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center space-x-3">
-                    <Check className={`w-5 h-5 ${plan.popular ? 'text-indigo-200' : 'text-gray-400'}`} />
-                    <span className={plan.popular ? 'text-indigo-100' : 'text-gray-300'}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleSubscribe(plan.priceId)}
-                disabled={loading === plan.priceId}
-                className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
+              <motion.button
+                onClick={() => onSelectPlan(plan.priceId)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`mt-8 block w-full py-3 px-6 border border-transparent rounded-md text-center font-medium ${
                   plan.popular
-                    ? 'bg-white text-indigo-600 hover:bg-gray-100'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    : 'bg-gray-700 hover:bg-gray-600 text-white'
                 }`}
               >
-                {loading === plan.priceId ? 'Processing...' : 'Get Started'}
-              </button>
+                Choose {plan.name}
+              </motion.button>
             </motion.div>
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };

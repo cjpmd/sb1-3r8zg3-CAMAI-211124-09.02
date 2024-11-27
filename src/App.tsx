@@ -1,133 +1,191 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { AuthForm } from './components/auth/AuthForm';
+import { Dashboard } from './components/Dashboard';
+import { Settings } from './components/Settings';
+import { Profile } from './components/Profile';
+import { ImageBrowser } from './components/ImageBrowser';
+import { VideoBrowser } from './components/video/VideoBrowser';
+import { ContentUploader } from './components/ContentUploader';
+import { ConnectAccounts } from './components/social/ConnectAccounts';
+import { OAuthCallback } from './components/social/OAuthCallback';
+import { SocialUploader } from './components/social/SocialUploader';
+import { VideoCreator } from "./components/content/VideoCreator";
+import { CameraCapture } from './components/camera/CameraCapture';
+import { StripeProvider } from './components/providers/StripeProvider';
+import { SubscriptionManagement } from './components/subscription/SubscriptionManagement';
+import { ThemeProvider } from './components/providers/ThemeProvider';
+import { ErrorBoundary } from 'react-error-boundary';
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { Toaster } from './components/ui/toaster';
 import { supabase } from './lib/supabase';
-import { LandingPage } from './pages/LandingPage';
-import { AccountPage } from './pages/AccountPage';
-import { VideoFeed } from './components/VideoFeed';
-import { VideoRecorder } from './components/VideoRecorder/VideoRecorder';
-import { PricingModal } from './components/PricingModal';
-import { Menu, Plus, User } from 'lucide-react';
-
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuthStore();
-  const bypassAuth = localStorage.getItem('bypassAuth') === 'true';
-  
-  if (loading) {
-    return <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-    </div>;
-  }
-  
-  if (!user && !bypassAuth) {
-    return <Navigate to="/" />;
-  }
-  
-  return children;
-};
-
-const MainApp = () => {
-  const [showPricing, setShowPricing] = React.useState(false);
-  const [showRecorder, setShowRecorder] = React.useState(false);
-  const { signOut } = useAuthStore();
-  const bypassAuth = localStorage.getItem('bypassAuth') === 'true';
-
-  const handleSignOut = () => {
-    if (bypassAuth) {
-      localStorage.removeItem('bypassAuth');
-    }
-    signOut();
-  };
-
-  return (
-    <div className="bg-black min-h-screen">
-      <header className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/80 to-transparent">
-        <nav className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-white">ShortForm</h1>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setShowPricing(true)}
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
-            >
-              <Menu className="w-6 h-6 text-white" />
-            </button>
-            <a
-              href="/account"
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
-            >
-              <User className="w-6 h-6 text-white" />
-            </a>
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <main className="h-screen">
-        <VideoFeed />
-      </main>
-
-      <button
-        onClick={() => setShowRecorder(true)}
-        className="fixed bottom-6 right-6 p-4 rounded-full bg-white shadow-lg z-40 hover:bg-gray-100 transition-colors"
-      >
-        <Plus className="w-8 h-8 text-gray-900" />
-      </button>
-
-      <AnimatePresence>
-        {showRecorder && (
-          <VideoRecorder onClose={() => setShowRecorder(false)} />
-        )}
-        {showPricing && (
-          <PricingModal onClose={() => setShowPricing(false)} />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
+import { ContentCreationForm } from './components/content/ContentCreationForm';
+import { ContentList } from './components/content/ContentList';
+import { CreatePost } from './components/social/CreatePost';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { LoginPage } from './pages/auth/login';
+import { TikTokVerify } from './pages/auth/TikTokVerify';
+import AuthCallback from './pages/AuthCallback';
+import { HelmetProvider } from 'react-helmet-async';
 
 function App() {
-  const { setSession } = useAuthStore();
+  const { session, refreshSession } = useAuthStore();
+  const [initializing, setInitializing] = useState(true);
 
-  React.useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+  useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setInitializing(false);
+    }, 3000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    const checkSession = async () => {
+      try {
+        console.log('Initial session check:', session);
+        await refreshSession();
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        clearTimeout(timeoutId);
+        setInitializing(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, _session) => {
+        console.log('Auth state changed:', _session);
+        await refreshSession();
+      }
+    );
+
+    // Initial session check
+    checkSession();
+
+    // Cleanup
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [refreshSession]);
+
+  if (initializing) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/app"
-          element={
-            <ProtectedRoute>
-              <MainApp />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+    <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <HelmetProvider>
+        <ThemeProvider>
+          <StripeProvider>
+            <Router>
+              <div className="min-h-screen bg-background">
+                <Routes>
+                  {/* Auth Routes */}
+                  <Route path="/tiktok-verify" element={<TikTokVerify />} />
+                  <Route 
+                    path="/login" 
+                    element={session ? <Navigate to="/" replace /> : <LoginPage />} 
+                  />
+                  <Route 
+                    path="/auth" 
+                    element={session ? <Navigate to="/" replace /> : <AuthForm />} 
+                  />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/auth/tiktok/callback" element={<OAuthCallback platform="tiktok" />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+
+                  {/* Protected Routes */}
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/images" element={
+                    <ProtectedRoute>
+                      <ImageBrowser />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/videos" element={
+                    <ProtectedRoute>
+                      <VideoBrowser />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/upload" element={
+                    <ProtectedRoute>
+                      <ContentUploader />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/connect" element={
+                    <ProtectedRoute>
+                      <ConnectAccounts />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/social/upload" element={
+                    <ProtectedRoute>
+                      <SocialUploader />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/create/video" element={
+                    <ProtectedRoute>
+                      <VideoCreator />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/camera" element={
+                    <ProtectedRoute>
+                      <CameraCapture />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/subscription" element={
+                    <ProtectedRoute>
+                      <SubscriptionManagement />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/create" element={
+                    <ProtectedRoute>
+                      <ContentCreationForm />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/content" element={
+                    <ProtectedRoute>
+                      <ContentList />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/post" element={
+                    <ProtectedRoute>
+                      <CreatePost />
+                    </ProtectedRoute>
+                  } />
+                </Routes>
+                <Toaster />
+              </div>
+            </Router>
+          </StripeProvider>
+        </ThemeProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 }
 

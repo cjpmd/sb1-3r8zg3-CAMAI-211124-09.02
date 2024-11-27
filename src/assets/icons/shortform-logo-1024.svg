@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .gradient-bg { fill: url(#gradient); }
+    .play-button { fill: white; }
+    .border { stroke: white; stroke-width: 24; fill: none; }
+    .wave { stroke: white; stroke-width: 20; stroke-linecap: round; }
+  </style>
+  
+  <!-- Background Circle with Gradient -->
+  <circle class="gradient-bg" cx="512" cy="512" r="496"/>
+  
+  <!-- Play Button -->
+  <path class="play-button" d="M400 320L720 512L400 704Z"/>
+  
+  <!-- Waves -->
+  <path class="wave" d="M280 360Q512 440 744 360"/>
+  <path class="wave" d="M280 664Q512 584 744 664"/>
+  
+  <!-- Border -->
+  <circle class="border" cx="512" cy="512" r="496"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="1024" y2="1024">
+      <stop offset="0%" stop-color="#FF4D4D"/>
+      <stop offset="50%" stop-color="#FF2E94"/>
+      <stop offset="100%" stop-color="#7B61FF"/>
+    </linearGradient>
+  </defs>
+</svg>

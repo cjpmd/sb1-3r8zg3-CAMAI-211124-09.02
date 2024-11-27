@@ -1,8 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, Sparkles, Zap } from 'lucide-react';
+import { Play, CreditCard, Zap } from 'lucide-react';
 
-export const Hero = () => {
+interface HeroProps {
+  onGetStarted: () => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({ onGetStarted }) => {
   return (
     <div className="relative overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20" />
@@ -22,6 +26,7 @@ export const Hero = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <motion.button
+              onClick={onGetStarted}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-8 py-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center space-x-2 font-medium"
@@ -30,12 +35,13 @@ export const Hero = () => {
               <span>Get Started</span>
             </motion.button>
             <motion.button
+              onClick={onGetStarted}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-8 py-4 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center space-x-2 font-medium"
             >
-              <Sparkles className="w-5 h-5" />
-              <span>View Examples</span>
+              <CreditCard className="w-5 h-5" />
+              <span>View Pricing</span>
             </motion.button>
           </div>
         </motion.div>
@@ -49,29 +55,35 @@ export const Hero = () => {
           >
             <Zap className="w-12 h-12 text-indigo-400 mb-4" />
             <h3 className="text-xl font-semibold mb-2">AI-Powered Creation</h3>
-            <p className="text-gray-400">Generate stunning visuals and captions with advanced AI tools</p>
+            <p className="text-gray-400">
+              Create professional-quality videos with our advanced AI tools
+            </p>
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             className="p-6 rounded-xl bg-gray-800/50 backdrop-blur-sm"
           >
-            <Play className="w-12 h-12 text-purple-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Easy Recording</h3>
-            <p className="text-gray-400">Create and edit videos directly in your browser</p>
+            <Zap className="w-12 h-12 text-indigo-400 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Smart Editing</h3>
+            <p className="text-gray-400">
+              Edit your videos with intelligent suggestions and automated enhancements
+            </p>
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="p-6 rounded-xl bg-gray-800/50 backdrop-blur-sm"
           >
-            <Sparkles className="w-12 h-12 text-pink-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Professional Effects</h3>
-            <p className="text-gray-400">Add stunning effects and transitions to your videos</p>
+            <Zap className="w-12 h-12 text-indigo-400 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">One-Click Share</h3>
+            <p className="text-gray-400">
+              Share your videos instantly across multiple platforms
+            </p>
           </motion.div>
         </div>
       </div>

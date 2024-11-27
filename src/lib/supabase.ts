@@ -1,57 +1,151 @@
 import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase';
 
-const supabaseUrl = 'https://efdhihonjfxzpxjrvwxd.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZGhpaG9uamZ4enB4anJ2d3hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE5NTY5NDgsImV4cCI6MjA0NzUzMjk0OH0.of5JpBT19zKYEhhiT2UBZYJW0ZHcITZtp4ogzIvefBU';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing environment variables: ' +
+    (!supabaseUrl ? 'VITE_SUPABASE_URL ' : '') +
+    (!supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : '')
+  );
+}
+
+console.log('Initializing Supabase client with URL:', supabaseUrl);
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: 'sb-auth-token',
+    flowType: 'pkce',
+  },
+});
+
+// Initialize auth state
+export const initializeAuth = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) throw error;
+    
+    if (session) {
+      console.log('Found existing session:', session.user?.id);
+    } else {
+      console.log('No existing session found');
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error initializing auth:', error);
+    return null;
+  }
+};
+
+// Add auth state change listener for debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', { event, userId: session?.user?.id });
+});
+
+// Helper to check if user is authenticated
+export const isAuthenticated = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error checking auth:', error);
+      return false;
+    }
+    return !!session;
+  } catch (error) {
+    console.error('Error in isAuthenticated:', error);
+    return false;
+  }
+};
 
 export interface Profile {
   id: string;
   username: string;
-  avatar_url: string;
-  subscription_tier: string;
-  subscription_status: string;
+  avatar_url?: string;
+  subscription_tier?: string;
+  subscription_status?: string;
   created_at: string;
+  settings?: {
+    darkMode: boolean;
+    notifications: boolean;
+    autoBackup: boolean;
+  };
 }
 
-export const getProfile = async (userId: string): Promise<Profile | null> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-  
-  if (error) throw error;
-  return data;
+// Get user profile
+export const getProfile = async (userId: string) => {
+  if (!userId) {
+    console.error('getProfile called with null/undefined userId');
+    return null;
+  }
+
+  try {
+    console.log('Fetching profile for user:', userId);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return null;
+  }
 };
 
+// Update user profile
 export const updateProfile = async (userId: string, updates: Partial<Profile>) => {
-  const { error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId);
-  
-  if (error) throw error;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return null;
+  }
 };
 
-export const updatePassword = async (newPassword: string) => {
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
-  
-  if (error) throw error;
+// Update user password
+export const updatePassword = async (newPassword: string): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
 };
 
-export const createStripeCheckout = async (priceId: string) => {
-  const { data, error } = await supabase.functions.invoke('create-checkout', {
-    body: { priceId }
-  });
-  
-  if (error) throw error;
-  return data.url;
-};
-
-export const cancelSubscription = async () => {
-  const { error } = await supabase.functions.invoke('cancel-subscription');
-  if (error) throw error;
+// Sign out helper
+export const signOut = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error signing out:', error);
+    return false;
+  }
 };
