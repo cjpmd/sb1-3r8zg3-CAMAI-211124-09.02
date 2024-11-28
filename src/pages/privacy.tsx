@@ -111,10 +111,10 @@ export function PrivacyPolicy() {
             </p>
             <ol className="list-decimal pl-6 space-y-2">
               <li>Go to your Facebook Account Settings</li>
-              <li>Navigate to Settings &amp; Privacy {'->'} Settings</li>
-              <li>Click on &quot;Apps and Websites&quot;</li>
-              <li>Find &quot;CAMAI&quot; in your list of connected apps</li>
-              <li>Click &quot;Remove&quot; to disconnect the app and request data deletion</li>
+              <li>Navigate to Settings and Privacy, then select Settings</li>
+              <li>Click Apps and Websites</li>
+              <li>Find CAMAI in your list of connected apps</li>
+              <li>Click Remove to disconnect the app and request deletion</li>
             </ol>
             <p>
               Alternatively, you can email us at cmcdonald002@dundee.ac.uk to request deletion of your data.
