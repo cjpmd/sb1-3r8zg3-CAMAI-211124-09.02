@@ -90,18 +90,24 @@ export function PrivacyPolicy() {
           <h2 className="text-2xl font-semibold">Data Deletion Instructions</h2>
           <div className="space-y-4">
             <p>
-              You have the right to request deletion of your personal data. To delete your data:
+              You have the right to request deletion of your personal data. Follow these steps to delete your data:
             </p>
-            <ol className="list-decimal pl-6 space-y-2">
-              <li>Open Facebook Account Settings</li>
-              <li>Open Settings and Privacy menu</li>
-              <li>Open Settings page</li>
-              <li>Open Apps and Websites section</li>
-              <li>Locate CAMAI in the connected apps list</li>
-              <li>Select Remove to delete app access and data</li>
-            </ol>
-            <p>
-              Alternatively, you can email us at cmcdonald002@dundee.ac.uk to request deletion of your data.
+            <div className="space-y-2 pl-6">
+              <p>1. Access Facebook Settings:</p>
+              <ul className="list-disc pl-6">
+                <li>Open Facebook Account Settings</li>
+                <li>Select Settings and Privacy</li>
+                <li>Choose Settings</li>
+              </ul>
+              <p>2. Manage App Permissions:</p>
+              <ul className="list-disc pl-6">
+                <li>Find Apps and Websites</li>
+                <li>Locate CAMAI</li>
+                <li>Select Remove</li>
+              </ul>
+            </div>
+            <p className="mt-4">
+              Alternatively, email us at cmcdonald002@dundee.ac.uk to request data deletion.
               We will process your request within 30 days.
             </p>
             <p className="text-sm opacity-75">
