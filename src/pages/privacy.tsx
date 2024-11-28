@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
             <li>Open Facebook Settings</li>
             <li>Go to Settings and Privacy</li>
             <li>Select Apps and Websites</li>
-            <li>Find and Remove CAMAI {String('>')}</li>
+            <li>Find and Remove CAMAI</li>
           </ol>
           <p>Or email cmcdonald002@dundee.ac.uk for data deletion.</p>
         </section>
