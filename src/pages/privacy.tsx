@@ -1,5 +1,24 @@
 import { Card } from "@/components/ui/card";
 
+const steps = [
+  {
+    title: "Access Facebook Settings",
+    steps: [
+      "Open Facebook Account Settings",
+      "Select Settings and Privacy",
+      "Choose Settings"
+    ]
+  },
+  {
+    title: "Manage App Permissions",
+    steps: [
+      "Find Apps and Websites",
+      "Locate CAMAI",
+      "Select Remove"
+    ]
+  }
+];
+
 export function PrivacyPolicy() {
   return (
     <Card className="max-w-4xl mx-auto p-8 space-y-8">
@@ -8,9 +27,7 @@ export function PrivacyPolicy() {
         
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Introduction</h2>
-          <p>
-            Welcome to CAMAI. This policy explains how we collect, use, and protect your personal information.
-          </p>
+          <p>Welcome to CAMAI. This policy explains how we collect, use, and protect your personal information.</p>
         </section>
 
         <section className="space-y-4">
@@ -89,22 +106,18 @@ export function PrivacyPolicy() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Data Deletion Instructions</h2>
           <div className="space-y-4">
-            <p>
-              You have the right to request deletion of your personal data. Follow these steps to delete your data:
-            </p>
-            <div className="space-y-2 pl-6">
-              <p>1. Access Facebook Settings:</p>
-              <ul className="list-disc pl-6">
-                <li>Open Facebook Account Settings</li>
-                <li>Select Settings and Privacy</li>
-                <li>Choose Settings</li>
-              </ul>
-              <p>2. Manage App Permissions:</p>
-              <ul className="list-disc pl-6">
-                <li>Find Apps and Websites</li>
-                <li>Locate CAMAI</li>
-                <li>Select Remove</li>
-              </ul>
+            <p>You have the right to request deletion of your personal data. Follow these steps to delete your data:</p>
+            <div className="space-y-4 pl-6">
+              {steps.map((section, i) => (
+                <div key={i} className="space-y-2">
+                  <p>{i + 1}. {section.title}:</p>
+                  <ul className="list-disc pl-6">
+                    {section.steps.map((step, j) => (
+                      <li key={j}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
             <p className="mt-4">
               Alternatively, email us at cmcdonald002@dundee.ac.uk to request data deletion.
