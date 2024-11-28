@@ -79,6 +79,99 @@ export type Database = {
           }
         }
       }
+      social_accounts: {
+        Row: {
+          id: string
+          user_id: string
+          platform: string
+          username: string
+          access_token: string
+          refresh_token: string | null
+          expires_at: string | null
+          profile_picture: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          platform: string
+          username: string
+          access_token: string
+          refresh_token?: string | null
+          expires_at?: string | null
+          profile_picture?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          platform?: string
+          username?: string
+          access_token?: string
+          refresh_token?: string | null
+          expires_at?: string | null
+          profile_picture?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      custom_platforms: {
+        Row: {
+          id: string
+          user_id: string
+          platform_name: string
+          platform_url: string
+          username: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          platform_name: string
+          platform_url: string
+          username: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          platform_name?: string
+          platform_url?: string
+          username?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      video_uploads: {
+        Row: {
+          id: string
+          user_id: string
+          upload_month: string
+          upload_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          upload_month: string
+          upload_count: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          upload_month?: string
+          upload_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -92,3 +185,13 @@ export type Database = {
     }
   }
 }
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'] 
+export type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+
+export type Content = Tables<'contents'>
+export type Profile = Tables<'profiles'>
+export type SocialAccount = Tables<'social_accounts'>
+export type CustomPlatform = Tables<'custom_platforms'>
+export type VideoUpload = Tables<'video_uploads'>
