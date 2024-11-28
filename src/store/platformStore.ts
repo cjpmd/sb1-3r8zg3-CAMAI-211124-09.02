@@ -1,99 +1,97 @@
-import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
-import { debugLog } from '@/utils/debug';
-
-export interface Platform {
-  id: string;
-  name: string;
-  connected: boolean;
-  username?: string;
-  settings?: {
-    autoPost: boolean;
-    crossPost: boolean;
-    defaultPrivacy: 'public' | 'private';
-    notifications: boolean;
-  };
-}
+import { create } from 'zustand'
+import { supabase } from '../lib/supabase'
+import { Platform, SocialAccount } from '../types/supabase'
 
 interface PlatformState {
-  platforms: Platform[];
-  loading: boolean;
-  error: string | null;
-  fetchPlatforms: (userId: string) => Promise<void>;
+  platforms: SocialAccount[]
+  loading: boolean
+  error: string | null
+  fetchPlatforms: (userId: string) => Promise<void>
+  addPlatform: (platform: SocialAccount) => Promise<void>
+  removePlatform: (platformId: string) => Promise<void>
+  updatePlatform: (platformId: string, updates: Partial<SocialAccount>) => Promise<void>
 }
 
-const defaultSettings = {
-  autoPost: false,
-  crossPost: true,
-  defaultPrivacy: 'public' as const,
-  notifications: true
-};
-
-const DEFAULT_PLATFORMS = Object.freeze([
-  {
-    id: "instagram",
-    name: "Instagram",
-    connected: false,
-    settings: { ...defaultSettings }
-  },
-  {
-    id: "tiktok",
-    name: "TikTok",
-    connected: false,
-    settings: { ...defaultSettings }
-  },
-  {
-    id: "youtube",
-    name: "YouTube",
-    connected: false,
-    settings: { ...defaultSettings }
-  },
-  {
-    id: "facebook",
-    name: "Facebook",
-    connected: false,
-    settings: { ...defaultSettings }
-  },
-  {
-    id: "x",
-    name: "X",
-    connected: false,
-    settings: { ...defaultSettings }
-  }
-]);
-
-export const usePlatformStore = create<PlatformState>((set) => ({
-  platforms: DEFAULT_PLATFORMS,
+export const usePlatformStore = create<PlatformState>((set, get) => ({
+  platforms: [],
   loading: false,
   error: null,
+
   fetchPlatforms: async (userId: string) => {
+    set({ loading: true, error: null })
     try {
-      set({ loading: true, error: null });
-
-      const { data: connectedAccounts, error } = await supabase
+      const { data, error } = await supabase
         .from('social_accounts')
-        .select('platform_id, username')
-        .eq('user_id', userId);
+        .select('*')
+        .eq('user_id', userId)
 
-      if (error) throw error;
+      if (error) throw error
 
-      const updatedPlatforms = DEFAULT_PLATFORMS.map(platform => {
-        const connectedAccount = connectedAccounts?.find(
-          account => account.platform_id === platform.id
-        );
-        
-        return {
-          ...platform,
-          connected: !!connectedAccount,
-          username: connectedAccount?.username
-        };
-      });
-
-      set({ platforms: updatedPlatforms, loading: false });
-      debugLog('Platforms updated:', updatedPlatforms);
+      set({ platforms: data || [], loading: false })
     } catch (error) {
-      console.error('Error fetching platforms:', error);
-      set({ error: 'Failed to fetch platforms', loading: false });
+      console.error('Error fetching platforms:', error)
+      set({ error: 'Failed to fetch platforms', loading: false })
+    }
+  },
+
+  addPlatform: async (platform: SocialAccount) => {
+    set({ loading: true, error: null })
+    try {
+      const { error } = await supabase
+        .from('social_accounts')
+        .insert(platform)
+
+      if (error) throw error
+
+      const { platforms } = get()
+      set({ platforms: [...platforms, platform], loading: false })
+    } catch (error) {
+      console.error('Error adding platform:', error)
+      set({ error: 'Failed to add platform', loading: false })
+    }
+  },
+
+  removePlatform: async (platformId: string) => {
+    set({ loading: true, error: null })
+    try {
+      const { error } = await supabase
+        .from('social_accounts')
+        .delete()
+        .eq('id', platformId)
+
+      if (error) throw error
+
+      const { platforms } = get()
+      set({
+        platforms: platforms.filter(p => p.id !== platformId),
+        loading: false
+      })
+    } catch (error) {
+      console.error('Error removing platform:', error)
+      set({ error: 'Failed to remove platform', loading: false })
+    }
+  },
+
+  updatePlatform: async (platformId: string, updates: Partial<SocialAccount>) => {
+    set({ loading: true, error: null })
+    try {
+      const { error } = await supabase
+        .from('social_accounts')
+        .update(updates)
+        .eq('id', platformId)
+
+      if (error) throw error
+
+      const { platforms } = get()
+      set({
+        platforms: platforms.map(p =>
+          p.id === platformId ? { ...p, ...updates } : p
+        ),
+        loading: false
+      })
+    } catch (error) {
+      console.error('Error updating platform:', error)
+      set({ error: 'Failed to update platform', loading: false })
     }
   }
-}));
+}))

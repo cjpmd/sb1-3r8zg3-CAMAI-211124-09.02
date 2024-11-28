@@ -15,9 +15,9 @@ export type Database = {
           user_id: string
           title: string
           description: string
-          platform: 'instagram' | 'tiktok' | 'youtube' | 'twitter'
+          platform: Platform
           media_urls: string[]
-          status: 'draft' | 'scheduled' | 'published' | 'failed'
+          status: ContentStatus
           scheduled_for: string | null
           created_at: string
           updated_at: string
@@ -27,9 +27,9 @@ export type Database = {
           user_id: string
           title: string
           description: string
-          platform: 'instagram' | 'tiktok' | 'youtube' | 'twitter'
+          platform: Platform
           media_urls?: string[]
-          status?: 'draft' | 'scheduled' | 'published' | 'failed'
+          status?: ContentStatus
           scheduled_for?: string | null
           created_at?: string
           updated_at?: string
@@ -39,9 +39,9 @@ export type Database = {
           user_id?: string
           title?: string
           description?: string
-          platform?: 'instagram' | 'tiktok' | 'youtube' | 'twitter'
+          platform?: Platform
           media_urls?: string[]
-          status?: 'draft' | 'scheduled' | 'published' | 'failed'
+          status?: ContentStatus
           scheduled_for?: string | null
           created_at?: string
           updated_at?: string
@@ -83,7 +83,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          platform: string
+          platform: Platform
           username: string
           access_token: string
           refresh_token: string | null
@@ -95,7 +95,7 @@ export type Database = {
         Insert: {
           id?: string
           user_id: string
-          platform: string
+          platform: Platform
           username: string
           access_token: string
           refresh_token?: string | null
@@ -107,7 +107,7 @@ export type Database = {
         Update: {
           id?: string
           user_id?: string
-          platform?: string
+          platform?: Platform
           username?: string
           access_token?: string
           refresh_token?: string | null
@@ -180,18 +180,38 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      content_status: 'draft' | 'scheduled' | 'published' | 'failed'
-      platform_type: 'instagram' | 'tiktok' | 'youtube' | 'twitter'
+      content_status: ContentStatus
+      platform_type: Platform
     }
   }
 }
 
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'] 
+export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
 export type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+
+export type Platform = 'instagram' | 'tiktok' | 'youtube' | 'twitter'
+export type ContentStatus = 'draft' | 'scheduled' | 'published' | 'failed'
 
 export type Content = Tables<'contents'>
 export type Profile = Tables<'profiles'>
 export type SocialAccount = Tables<'social_accounts'>
 export type CustomPlatform = Tables<'custom_platforms'>
 export type VideoUpload = Tables<'video_uploads'>
+
+export type AuthState = {
+  user: {
+    id: string
+    email?: string
+    user_metadata?: {
+      avatar_url?: string
+      full_name?: string
+      name?: string
+      picture?: string
+      provider?: string
+    }
+  } | null
+  profile: Profile | null
+  loading: boolean
+  updateProfile: (profile: Partial<Profile>) => Promise<void>
+}

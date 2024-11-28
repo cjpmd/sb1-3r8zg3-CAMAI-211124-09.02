@@ -1,41 +1,58 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
-
-interface Profile {
-  id: string;
-  username?: string;
-  full_name?: string;
-  avatar_url?: string;
-  email?: string;
-  subscription_tier?: 'free' | 'pro';
-}
+import { supabase } from '@/lib/supabase/client';
+import { Profile } from '@/types/profile';
 
 interface AuthState {
-  session: Session | null;
+  user: any; // TODO: Replace with proper User type
   profile: Profile | null;
   loading: boolean;
   error: string | null;
+  initialized: boolean;
+  clearSession: () => void;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
-  setSession: (session: Session | null) => Promise<void>;
-  loadProfile: () => Promise<void>;
-  clearError: () => void;
   refreshSession: () => Promise<void>;
+  loadProfile: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  session: null,
+const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
   profile: null,
   loading: true,
   error: null,
+  initialized: false,
 
-  clearError: () => set({ error: null }),
+  clearSession: () => {
+    set({ user: null, profile: null, error: null });
+  },
+
+  updateProfile: async (updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', updates.id)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        set((state) => ({
+          ...state,
+          profile: { ...state.profile, ...data } as Profile
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      set({ error: 'Failed to update profile' });
+    }
+  },
 
   refreshSession: async () => {
     try {
       set({ loading: true, error: null });
+      
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) throw error;
@@ -95,24 +112,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  setSession: async (session) => {
+  signOut: async () => {
     try {
-      set({ session });
+      set({ loading: true, error: null });
       
-      if (session?.user) {
-        await get().loadProfile();
-      } else {
-        set({ profile: null });
-      }
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      set({ user: null, profile: null });
     } catch (error: any) {
-      console.error('Set session error:', error);
+      console.error('Sign out error:', error);
       set({ error: error.message });
+    } finally {
+      set({ loading: false });
     }
   },
 
   loadProfile: async () => {
     const state = get();
-    if (!state.session?.user?.id) return;
+    if (!state.user?.id) return;
 
     try {
       set({ loading: true, error: null });
@@ -121,7 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .from('profiles')
         .select('*')
         .single()
-        .eq('id', state.session.user.id);
+        .eq('id', state.user.id);
 
       if (error) throw error;
       
@@ -134,22 +152,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signOut: async () => {
+  setSession: async (session) => {
     try {
-      set({ loading: true, error: null });
+      set({ user: session.user, session });
       
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      set({ session: null, profile: null });
+      if (session.user) {
+        await get().loadProfile();
+      } else {
+        set({ profile: null });
+      }
     } catch (error: any) {
-      console.error('Sign out error:', error);
+      console.error('Set session error:', error);
       set({ error: error.message });
-    } finally {
-      set({ loading: false });
     }
-  },
+  }
 }));
+
+export default useAuthStore;
 
 // Initialize auth state
 supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -161,7 +180,7 @@ supabase.auth.getSession().then(({ data: { session }, error }) => {
 
   useAuthStore.getState().setSession(session);
 }).finally(() => {
-  useAuthStore.setState({ loading: false });
+  useAuthStore.setState({ loading: false, initialized: true });
 });
 
 // Listen for auth changes

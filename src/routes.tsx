@@ -1,22 +1,22 @@
-import { lazy } from 'react';
+import { lazy, ComponentType } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
+import { AuthState } from './types/supabase';
 
 // Lazy load components
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const Settings = lazy(() => import('./components/Settings'));
-const Profile = lazy(() => import('./components/Profile'));
-const ImageBrowser = lazy(() => import('./components/ImageBrowser'));
-const VideoBrowser = lazy(() => import('./components/VideoBrowser'));
-const ContentUploader = lazy(() => import('./components/ContentUploader'));
-const VideoUpload = lazy(() => import('./components/upload/VideoUpload'));
-const ConnectAccounts = lazy(() => import('./components/social/ConnectAccounts'));
-const SocialUploader = lazy(() => import('./components/social/SocialUploader'));
-const OAuthCallback = lazy(() => import('./components/social/OAuthCallback'));
-const SubscriptionManagement = lazy(() => import('./components/subscription/SubscriptionManagement'));
-const CustomPlatformsTest = lazy(() => import('./pages/test/custom-platforms'));
-const Auth = lazy(() => import('./components/auth/AuthForm'));
-const LoginPage = lazy(() => import('./pages/auth/login').then(mod => ({ default: mod.LoginPage })));
+const Dashboard = lazy(() => import('./components/Dashboard')) as unknown as ComponentType<any>;
+const Settings = lazy(() => import('./components/Settings')) as unknown as ComponentType<any>;
+const Profile = lazy(() => import('./components/Profile')) as unknown as ComponentType<any>;
+const ImageBrowser = lazy(() => import('./components/ImageBrowser')) as unknown as ComponentType<any>;
+const VideoBrowser = lazy(() => import('./components/VideoBrowser')) as unknown as ComponentType<any>;
+const ContentUploader = lazy(() => import('./components/ContentUploader')) as unknown as ComponentType<any>;
+const VideoUpload = lazy(() => import('./components/upload/VideoUpload')) as unknown as ComponentType<any>;
+const ConnectAccounts = lazy(() => import('./components/social/ConnectAccounts')) as unknown as ComponentType<any>;
+const SocialUploader = lazy(() => import('./components/social/SocialUploader')) as unknown as ComponentType<any>;
+const OAuthCallback = lazy(() => import('./components/social/OAuthCallback')) as unknown as ComponentType<any>;
+const SubscriptionManagement = lazy(() => import('./components/subscription/SubscriptionManagement')) as unknown as ComponentType<any>;
+const AuthForm = lazy(() => import('./components/auth/AuthForm')) as unknown as ComponentType<any>;
+const LoginPage = lazy(() => import('./pages/auth/login').then(mod => ({ default: mod.LoginPage }))) as unknown as ComponentType<any>;
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -37,16 +37,16 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 
 interface RouteConfig {
   path: string;
-  element: React.ReactNode;
-  requiresAuth?: boolean;
-  requiresGuest?: boolean;
+  component: ComponentType<any>;
+  private?: boolean;
+  layout?: ComponentType<any>;
 }
 
 const createProtectedRoute = (
   Component: React.ComponentType,
   requiresAuth = true
 ) => {
-  return ({ user }: { user: any }) => {
+  return ({ user }: { user: AuthState['user'] }) => {
     if (requiresAuth && !user) {
       return <Navigate to="/login" />;
     }
@@ -64,76 +64,76 @@ const createProtectedRoute = (
 export const routes: RouteConfig[] = [
   {
     path: '/',
-    element: createProtectedRoute(Dashboard),
-    requiresAuth: true,
+    component: Dashboard,
+    private: true,
   },
   {
     path: '/login',
-    element: createProtectedRoute(LoginPage, false),
-    requiresGuest: true,
+    component: LoginPage,
+    private: false,
   },
   {
     path: '/auth',
-    element: createProtectedRoute(Auth, false),
-    requiresGuest: true,
+    component: AuthForm,
+    private: false,
   },
   {
     path: '/settings',
-    element: createProtectedRoute(Settings),
-    requiresAuth: true,
+    component: Settings,
+    private: true,
   },
   {
     path: '/profile',
-    element: createProtectedRoute(Profile),
-    requiresAuth: true,
+    component: Profile,
+    private: true,
   },
   {
     path: '/images',
-    element: createProtectedRoute(ImageBrowser),
-    requiresAuth: true,
+    component: ImageBrowser,
+    private: true,
   },
   {
     path: '/videos',
-    element: createProtectedRoute(VideoBrowser),
-    requiresAuth: true,
+    component: VideoBrowser,
+    private: true,
   },
   {
     path: '/upload',
-    element: createProtectedRoute(ContentUploader),
-    requiresAuth: true,
+    component: ContentUploader,
+    private: true,
   },
   {
     path: '/upload/video',
-    element: createProtectedRoute(VideoUpload),
-    requiresAuth: true,
+    component: VideoUpload,
+    private: true,
   },
   {
     path: '/social/connect',
-    element: createProtectedRoute(ConnectAccounts),
-    requiresAuth: true,
+    component: ConnectAccounts,
+    private: true,
   },
   {
     path: '/social/upload',
-    element: createProtectedRoute(SocialUploader),
-    requiresAuth: true,
+    component: SocialUploader,
+    private: true,
   },
   {
     path: '/auth/tiktok/callback',
-    element: <OAuthCallback platform="tiktok" />,
+    component: OAuthCallback,
   },
   {
     path: '/subscription',
-    element: createProtectedRoute(SubscriptionManagement),
-    requiresAuth: true,
+    component: SubscriptionManagement,
+    private: true,
   },
   {
     path: '/test/custom-platforms',
-    element: createProtectedRoute(CustomPlatformsTest),
-    requiresAuth: true,
+    component: lazy(() => import('./pages/test/custom-platforms')) as unknown as ComponentType<any>,
+    private: true,
   },
   {
     path: '*',
-    element: (
+    component: () => (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold">404</h1>
@@ -143,3 +143,7 @@ export const routes: RouteConfig[] = [
     ),
   },
 ];
+
+export type RouteProps = {
+  user: AuthState['user'];
+};
