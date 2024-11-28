@@ -1,23 +1,5 @@
+// Privacy Policy Component - Last updated: 2024-11-28
 import { Card } from "@/components/ui/card";
-
-const steps = [
-  {
-    title: "Access Facebook Settings",
-    steps: [
-      "Open Facebook Account Settings",
-      "Select Settings and Privacy",
-      "Choose Settings"
-    ]
-  },
-  {
-    title: "Manage App Permissions",
-    steps: [
-      "Find Apps and Websites",
-      "Locate CAMAI",
-      "Select Remove"
-    ]
-  }
-];
 
 export function PrivacyPolicy() {
   return (
