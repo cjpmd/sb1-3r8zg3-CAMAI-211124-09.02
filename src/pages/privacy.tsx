@@ -106,21 +106,18 @@ export function PrivacyPolicy() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Data Deletion Instructions</h2>
           <div className="space-y-4">
-            <p>You have the right to request deletion of your personal data. Follow these steps to delete your data:</p>
-            <div className="space-y-4 pl-6">
-              {steps.map((section, i) => (
-                <div key={i} className="space-y-2">
-                  <p>{i + 1}. {section.title}:</p>
-                  <ul className="list-disc pl-6">
-                    {section.steps.map((step, j) => (
-                      <li key={j}>{step}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4">
-              Alternatively, email us at cmcdonald002@dundee.ac.uk to request data deletion.
+            <p>
+              You have the right to request deletion of your personal data. To delete your data:
+            </p>
+            <ol className="list-decimal pl-6 space-y-2">
+              <li>Go to your Facebook Account Settings</li>
+              <li>Navigate to Settings &amp; Privacy {'->'} Settings</li>
+              <li>Click on &quot;Apps and Websites&quot;</li>
+              <li>Find &quot;CAMAI&quot; in your list of connected apps</li>
+              <li>Click &quot;Remove&quot; to disconnect the app and request data deletion</li>
+            </ol>
+            <p>
+              Alternatively, you can email us at cmcdonald002@dundee.ac.uk to request deletion of your data.
               We will process your request within 30 days.
             </p>
             <p className="text-sm opacity-75">
