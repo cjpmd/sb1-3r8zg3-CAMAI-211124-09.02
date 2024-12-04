@@ -33,6 +33,7 @@ import { LoginPage } from './pages/auth/login';
 import { TikTokVerify } from './pages/auth/TikTokVerify';
 import AuthCallback from './pages/AuthCallback';
 import { HelmetProvider } from 'react-helmet-async';
+import { AuthError, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 function App() {
   const { session, refreshSession } = useAuthStore();
@@ -49,7 +50,7 @@ function App() {
         console.log('Initial session check:', session);
         await refreshSession();
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.error('Error checking session:', error instanceof AuthError ? error.message : 'Unknown error');
       } finally {
         clearTimeout(timeoutId);
         setInitializing(false);
@@ -58,8 +59,8 @@ function App() {
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, _session) => {
-        console.log('Auth state changed:', _session);
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', session);
         await refreshSession();
       }
     );
@@ -69,8 +70,8 @@ function App() {
 
     // Cleanup
     return () => {
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, [refreshSession]);
 
