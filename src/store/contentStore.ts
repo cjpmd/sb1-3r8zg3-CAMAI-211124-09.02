@@ -1,126 +1,97 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
-interface Content {
+export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter';
+export type ContentStatus = 'draft' | 'scheduled' | 'published' | 'failed';
+
+export interface Content {
   id: string;
+  user_id: string;
   title: string;
   description: string;
-  platform: string;
+  platform: SocialPlatform;
   media_urls: string[];
-  status: 'draft' | 'scheduled' | 'published' | 'failed';
+  status: ContentStatus;
   scheduled_for: string | null;
   created_at: string;
   updated_at: string;
 }
 
-interface ContentStore {
+interface ContentState {
   contents: Content[];
   loading: boolean;
   error: string | null;
   fetchContents: () => Promise<void>;
-  createContent: (data: {
-    title: string;
-    description: string;
-    platform: string;
-    files: File[];
-    scheduledFor: Date | null;
-  }) => Promise<void>;
-  updateContent: (id: string, data: Partial<Content>) => Promise<void>;
+  createContent: (content: Omit<Content, 'id' | 'created_at' | 'updated_at'>) => Promise<Content>;
+  updateContent: (id: string, updates: Partial<Content>) => Promise<void>;
   deleteContent: (id: string) => Promise<void>;
   publishContent: (id: string) => Promise<void>;
 }
 
-export const useContentStore = create<ContentStore>((set, get) => ({
+export const useContentStore = create<ContentState>((set, get) => ({
   contents: [],
   loading: false,
   error: null,
 
   fetchContents: async () => {
-    set({ loading: true, error: null });
     try {
+      set({ loading: true, error: null });
       const { data, error } = await supabase
         .from('contents')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ contents: data || [] });
-    } catch (error: any) {
-      set({ error: error.message });
+      set({ contents: data as Content[] });
+    } catch (error) {
+      console.error('Error fetching contents:', error);
+      set({ error: error instanceof Error ? error.message : 'Error fetching contents' });
     } finally {
       set({ loading: false });
     }
   },
 
-  createContent: async ({ title, description, platform, files, scheduledFor }) => {
-    set({ loading: true, error: null });
+  createContent: async (content) => {
     try {
-      // 1. Upload media files
-      const mediaUrls = await Promise.all(
-        files.map(async (file) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const filePath = `content/${fileName}`;
-
-          const { error: uploadError, data } = await supabase.storage
-            .from('media')
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('media')
-            .getPublicUrl(filePath);
-
-          return publicUrl;
-        })
-      );
-
-      // 2. Create content record
+      set({ loading: true, error: null });
       const { data, error } = await supabase
         .from('contents')
-        .insert({
-          title,
-          description,
-          platform,
-          media_urls: mediaUrls,
-          status: scheduledFor ? 'scheduled' : 'draft',
-          scheduled_for: scheduledFor?.toISOString(),
-        })
+        .insert([content])
         .select()
         .single();
 
       if (error) throw error;
-
-      // 3. Update local state
-      const { contents } = get();
-      set({ contents: [data, ...contents] });
-    } catch (error: any) {
-      set({ error: error.message });
+      
+      const newContent = data as Content;
+      set(state => ({ contents: [newContent, ...state.contents] }));
+      return newContent;
+    } catch (error) {
+      console.error('Error creating content:', error);
+      set({ error: error instanceof Error ? error.message : 'Error creating content' });
       throw error;
     } finally {
       set({ loading: false });
     }
   },
 
-  updateContent: async (id, data) => {
-    set({ loading: true, error: null });
+  updateContent: async (id, updates) => {
     try {
+      set({ loading: true, error: null });
       const { error } = await supabase
         .from('contents')
-        .update(data)
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;
 
-      const { contents } = get();
-      set({
-        contents: contents.map((content) =>
-          content.id === id ? { ...content, ...data } : content
-        ),
-      });
-    } catch (error: any) {
-      set({ error: error.message });
+      set(state => ({
+        contents: state.contents.map(content =>
+          content.id === id ? { ...content, ...updates } : content
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating content:', error);
+      set({ error: error instanceof Error ? error.message : 'Error updating content' });
       throw error;
     } finally {
       set({ loading: false });
@@ -128,26 +99,8 @@ export const useContentStore = create<ContentStore>((set, get) => ({
   },
 
   deleteContent: async (id) => {
-    set({ loading: true, error: null });
     try {
-      const content = get().contents.find((c) => c.id === id);
-      if (!content) throw new Error('Content not found');
-
-      // 1. Delete media files
-      await Promise.all(
-        content.media_urls.map(async (url) => {
-          const filePath = url.split('/').pop();
-          if (!filePath) return;
-
-          const { error } = await supabase.storage
-            .from('media')
-            .remove([`content/${filePath}`]);
-
-          if (error) throw error;
-        })
-      );
-
-      // 2. Delete content record
+      set({ loading: true, error: null });
       const { error } = await supabase
         .from('contents')
         .delete()
@@ -155,11 +108,12 @@ export const useContentStore = create<ContentStore>((set, get) => ({
 
       if (error) throw error;
 
-      // 3. Update local state
-      const { contents } = get();
-      set({ contents: contents.filter((c) => c.id !== id) });
-    } catch (error: any) {
-      set({ error: error.message });
+      set(state => ({
+        contents: state.contents.filter(content => content.id !== id)
+      }));
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      set({ error: error instanceof Error ? error.message : 'Error deleting content' });
       throw error;
     } finally {
       set({ loading: false });
@@ -167,16 +121,17 @@ export const useContentStore = create<ContentStore>((set, get) => ({
   },
 
   publishContent: async (id) => {
-    set({ loading: true, error: null });
     try {
+      set({ loading: true, error: null });
       const content = get().contents.find((c) => c.id === id);
       if (!content) throw new Error('Content not found');
 
       // TODO: Implement platform-specific posting logic
       // For now, just mark as published
       await get().updateContent(id, { status: 'published' });
-    } catch (error: any) {
-      set({ error: error.message });
+    } catch (error) {
+      console.error('Error publishing content:', error);
+      set({ error: error instanceof Error ? error.message : 'Error publishing content' });
       throw error;
     } finally {
       set({ loading: false });

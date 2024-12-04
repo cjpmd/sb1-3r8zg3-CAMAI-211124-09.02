@@ -1,14 +1,26 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase/client';
-import { Profile } from '@/types/profile';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 
-export interface AuthState {
-  user: Profile | null;
+interface Profile {
+  id: string;
+  username: string;
+  created_at: string;
+  settings?: {
+    darkMode: boolean;
+    notifications: boolean;
+    autoBackup: boolean;
+  };
+  user?: User;
+}
+
+interface AuthState {
   session: Session | null;
+  user: User | null;
+  profile: Profile | null;
   loading: boolean;
-  initialized: boolean;
   error: string | null;
+  initialized: boolean;
   clearSession: () => void;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -20,11 +32,12 @@ export interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: null,
   session: null,
+  user: null,
+  profile: null,
   loading: true,
-  initialized: false,
   error: null,
+  initialized: false,
   clearSession: () => {},
   updateProfile: async () => {},
   signIn: async () => {},
@@ -40,26 +53,25 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
   clearSession: () => {
     supabase.auth.signOut();
-    set({ user: null, session: null });
+    set({ user: null, session: null, profile: null });
   },
 
   updateProfile: async (updates) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', get().user?.id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', get().user?.id)
+        .single();
 
-    if (error) {
+      if (error) throw error;
+      if (data) {
+        set({ profile: { ...get().profile, ...data } as Profile });
+      }
+    } catch (error) {
       console.error('Error updating profile:', error);
-      set({ error: error.message });
-      return;
+      set({ error: error instanceof Error ? error.message : 'Unknown error occurred' });
     }
-
-    set((state) => ({
-      ...state,
-      user: { ...state.user, ...updates } as Profile
-    }));
   },
 
   signIn: async (email: string, password: string) => {
@@ -114,7 +126,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       set({ loading: true, error: null });
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, session: null });
+      set({ user: null, session: null, profile: null });
     } catch (error: any) {
       console.error('Sign out error:', error);
       set({ error: error.message });
@@ -150,7 +162,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
         .eq('id', state.user.id);
 
       if (error) throw error;
-      set({ user: profile });
+      set({ profile });
     } catch (error: any) {
       console.error('Load profile error:', error);
       set({ error: error.message });
@@ -165,7 +177,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       if (session?.user) {
         await get().loadProfile();
       } else {
-        set({ user: null });
+        set({ user: null, profile: null });
       }
     } catch (error: any) {
       console.error('Set session error:', error);

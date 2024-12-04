@@ -20,6 +20,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           defaultTheme="system"
+          storageKey="ui-theme"
           enableSystem
           disableTransitionOnChange
         >
