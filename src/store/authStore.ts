@@ -1,207 +1,163 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { Session, User, AuthError } from '@supabase/supabase-js';
+import { Database } from '../types/database.types';
 
-interface Profile {
-  id: string;
-  username: string;
-  created_at: string;
-  settings?: {
-    darkMode: boolean;
-    notifications: boolean;
-    autoBackup: boolean;
-  };
-  user?: User;
+export interface LoginOptions {
+  provider: 'email' | 'google' | 'facebook' | 'twitter';
+  email?: string;
+  password?: string;
 }
 
-interface AuthState {
-  session: Session | null;
+export interface UserProfile {
+  id: string;
+  email: string;
+  avatar_url?: string;
+  full_name?: string;
+}
+
+export interface AuthState {
   user: User | null;
-  profile: Profile | null;
-  loading: boolean;
-  error: string | null;
-  initialized: boolean;
-  clearSession: () => void;
-  updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
+  session: Session | null;
+  profile: UserProfile | null;
+  isLoading: boolean;
+  error: AuthError | null;
+  signIn: (options: LoginOptions) => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  loadProfile: () => Promise<void>;
-  setSession: (session: Session | null) => Promise<void>;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
 }
 
-const initialState: AuthState = {
-  session: null,
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  session: null,
   profile: null,
-  loading: true,
+  isLoading: false,
   error: null,
-  initialized: false,
-  clearSession: () => {},
-  updateProfile: async () => {},
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-  refreshSession: async () => {},
-  loadProfile: async () => {},
-  setSession: async () => {},
-};
 
-const useAuthStore = create<AuthState>((set, get) => ({
-  ...initialState,
-
-  clearSession: () => {
-    supabase.auth.signOut();
-    set({ user: null, session: null, profile: null });
-  },
-
-  updateProfile: async (updates) => {
+  signIn: async (options: LoginOptions) => {
+    set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', get().user?.id)
-        .single();
+      let authResponse;
+      
+      switch (options.provider) {
+        case 'email':
+          if (!options.email || !options.password) {
+            throw new Error('Email and password are required');
+          }
+          authResponse = await supabase.auth.signInWithPassword({
+            email: options.email,
+            password: options.password,
+          });
+          break;
+        case 'google':
+          authResponse = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+          });
+          break;
+        default:
+          throw new Error('Unsupported auth provider');
+      }
 
-      if (error) throw error;
-      if (data) {
-        set({ profile: { ...get().profile, ...data } as Profile });
+      if (authResponse.error) {
+        throw authResponse.error;
+      }
+
+      const { data: { session, user } } = authResponse;
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        set({
+          user,
+          session,
+          profile: profile as UserProfile,
+          isLoading: false,
+        });
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
-      set({ error: error instanceof Error ? error.message : 'Unknown error occurred' });
-    }
-  },
-
-  signIn: async (email: string, password: string) => {
-    try {
-      set({ loading: true, error: null });
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      if (data.session) {
-        await get().setSession(data.session);
-      }
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  signUp: async (email: string, password: string, username: string) => {
-    try {
-      set({ loading: true, error: null });
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
-      });
-
-      if (error) throw error;
-      if (data.session) {
-        await get().setSession(data.session);
-      }
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
+      set({ error: error as AuthError, isLoading: false });
+      throw error;
     }
   },
 
   signOut: async () => {
+    set({ isLoading: true, error: null });
     try {
-      set({ loading: true, error: null });
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, session: null, profile: null });
-    } catch (error: any) {
-      console.error('Sign out error:', error);
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
+      set({ user: null, session: null, profile: null, isLoading: false });
+    } catch (error) {
+      set({ error: error as AuthError, isLoading: false });
+      throw error;
     }
   },
 
   refreshSession: async () => {
+    set({ isLoading: true, error: null });
     try {
-      set({ loading: true, error: null });
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      await get().setSession(session);
-    } catch (error: any) {
-      console.error('Refresh session error:', error);
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-  loadProfile: async () => {
-    const state = get();
-    if (!state.user?.id) return;
-
-    try {
-      set({ loading: true, error: null });
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .single()
-        .eq('id', state.user.id);
-
-      if (error) throw error;
-      set({ profile });
-    } catch (error: any) {
-      console.error('Load profile error:', error);
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  setSession: async (session) => {
-    try {
-      set({ user: session?.user ?? null, session });
-      if (session?.user) {
-        await get().loadProfile();
+        set({
+          user: session.user,
+          session,
+          profile: profile as UserProfile,
+          isLoading: false,
+        });
       } else {
-        set({ user: null, profile: null });
+        set({ user: null, session: null, profile: null, isLoading: false });
       }
-    } catch (error: any) {
-      console.error('Set session error:', error);
-      set({ error: error.message });
+    } catch (error) {
+      set({ error: error as AuthError, isLoading: false });
+      throw error;
+    }
+  },
+
+  updateProfile: async (profileUpdate: Partial<UserProfile>) => {
+    const { user } = get();
+    if (!user) throw new Error('No user logged in');
+
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set({
+        profile: data as UserProfile,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({ error: error as AuthError, isLoading: false });
+      throw error;
     }
   },
 }));
 
-export default useAuthStore;
-
 // Initialize auth state
-supabase.auth.getSession().then(({ data: { session }, error }) => {
-  if (error) {
-    console.error('Failed to initialize auth:', error);
-    useAuthStore.setState({ error: error.message, loading: false });
-    return;
+supabase.auth.onAuthStateChange((event, session) => {
+  const store = useAuthStore.getState();
+  if (session) {
+    store.setSession(session);
+    store.setUser(session.user);
+  } else {
+    store.setSession(null);
+    store.setUser(null);
   }
-
-  useAuthStore.getState().setSession(session);
-}).finally(() => {
-  useAuthStore.setState({ loading: false, initialized: true });
-});
-
-// Listen for auth changes
-supabase.auth.onAuthStateChange((_event, session) => {
-  useAuthStore.getState().setSession(session);
+  store.setLoading(false);
 });

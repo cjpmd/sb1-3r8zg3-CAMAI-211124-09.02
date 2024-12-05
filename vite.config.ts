@@ -28,22 +28,23 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '~': path.resolve(__dirname, './src'),
       },
     },
     server: {
       host: '127.0.0.1',
-      port: 5173,
+      port: 3000,
       open: true, // Open browser on start
       cors: true,
       strictPort: false,
       hmr: {
         protocol: 'ws',
         host: '127.0.0.1',
-        port: 5173,
+        port: 3000,
       },
     },
     preview: {
-      port: 5173,
+      port: 3000,
       strictPort: false,
     },
     define: {
@@ -55,6 +56,20 @@ export default defineConfig(({ mode }) => {
       }, {}),
     },
     optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@supabase/supabase-js',
+        'zustand',
+        '@stripe/stripe-js',
+        'react-hook-form',
+        'zod',
+        '@hookform/resolvers/zod',
+        'framer-motion',
+        'react-intersection-observer',
+        'react-error-boundary',
+      ],
       esbuildOptions: {
         define: {
           global: 'globalThis',
@@ -62,6 +77,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      outDir: 'dist',
       sourcemap: true,
       rollupOptions: {
         output: {

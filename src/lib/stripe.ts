@@ -2,14 +2,22 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { handleStripeNetworkError, initializeStripe } from './stripeClient';
 import { loadStripe } from '@stripe/stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
 
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-if (!STRIPE_PUBLISHABLE_KEY) {
-  throw new Error('VITE_STRIPE_PUBLISHABLE_KEY is not set in environment variables');
+if (!stripePublishableKey) {
+  throw new Error('Missing Stripe publishable key');
 }
 
-export const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY);
+let stripePromise: Promise<Stripe | null>;
+
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(stripePublishableKey);
+  }
+  return stripePromise;
+};
 
 interface Subscription {
   id: string;

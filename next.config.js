@@ -8,6 +8,7 @@ const nextConfig = {
       'storage.googleapis.com',
       'lh3.googleusercontent.com',
     ],
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   typescript: {
     ignoreBuildErrors: false,
@@ -15,6 +16,9 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
 }
 
 module.exports = nextConfig

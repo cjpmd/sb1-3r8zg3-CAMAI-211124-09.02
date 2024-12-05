@@ -1,149 +1,210 @@
-import { lazy, ComponentType } from 'react';
-import { Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
-import { AuthState } from './types/supabase';
+import LoadingSpinner from './components/ui/LoadingSpinner';
+import ErrorFallback from './components/ui/ErrorFallback';
+import { useAuthStore } from './store/authStore';
 
 // Lazy load components
-const Dashboard = lazy(() => import('./components/Dashboard')) as unknown as ComponentType<any>;
-const Settings = lazy(() => import('./components/Settings')) as unknown as ComponentType<any>;
-const Profile = lazy(() => import('./components/Profile')) as unknown as ComponentType<any>;
-const ImageBrowser = lazy(() => import('./components/ImageBrowser')) as unknown as ComponentType<any>;
-const VideoBrowser = lazy(() => import('./components/VideoBrowser')) as unknown as ComponentType<any>;
-const ContentUploader = lazy(() => import('./components/ContentUploader')) as unknown as ComponentType<any>;
-const VideoUpload = lazy(() => import('./components/upload/VideoUpload')) as unknown as ComponentType<any>;
-const ConnectAccounts = lazy(() => import('./components/social/ConnectAccounts')) as unknown as ComponentType<any>;
-const SocialUploader = lazy(() => import('./components/social/SocialUploader')) as unknown as ComponentType<any>;
-const OAuthCallback = lazy(() => import('./components/social/OAuthCallback')) as unknown as ComponentType<any>;
-const SubscriptionManagement = lazy(() => import('./components/subscription/SubscriptionManagement')) as unknown as ComponentType<any>;
-const AuthForm = lazy(() => import('./components/auth/AuthForm')) as unknown as ComponentType<any>;
-const LoginPage = lazy(() => import('./pages/auth/login').then(mod => ({ default: mod.LoginPage }))) as unknown as ComponentType<any>;
-
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="rounded-lg bg-destructive/10 p-8 text-center">
-        <h2 className="mb-4 text-xl font-semibold text-destructive">Something went wrong</h2>
-        <pre className="text-sm text-muted-foreground mb-4">{error.message}</pre>
-        <button
-          onClick={resetErrorBoundary}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        >
-          Try again
-        </button>
-      </div>
-    </div>
-  );
-}
+const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
+const Settings = lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
+const Profile = lazy(() => import('./components/Profile').then(module => ({ default: module.Profile })));
+const ImageBrowser = lazy(() => import('./components/ImageBrowser').then(module => ({ default: module.ImageBrowser })));
+const VideoBrowser = lazy(() => import('./components/VideoBrowser').then(module => ({ default: module.VideoBrowser })));
+const ContentUploader = lazy(() => import('./components/ContentUploader').then(module => ({ default: module.ContentUploader })));
+const VideoUpload = lazy(() => import('./components/upload/VideoUpload').then(module => ({ default: module.VideoUpload })));
+const ConnectAccounts = lazy(() => import('./components/social/ConnectAccounts').then(module => ({ default: module.ConnectAccounts })));
+const SocialUploader = lazy(() => import('./components/social/SocialUploader').then(module => ({ default: module.SocialUploader })));
+const OAuthCallback = lazy(() => import('./components/social/OAuthCallback').then(module => ({ default: module.OAuthCallback })));
+const SubscriptionManagement = lazy(() => import('./components/subscription/SubscriptionManagement').then(module => ({ default: module.SubscriptionManagement })));
+const AuthForm = lazy(() => import('./components/auth/AuthForm').then(module => ({ default: module.AuthForm })));
 
 interface RouteConfig {
   path: string;
-  component: ComponentType<any>;
-  private?: boolean;
-  layout?: ComponentType<any>;
+  element: JSX.Element;
+  protected?: boolean;
 }
 
-const createProtectedRoute = (
-  Component: React.ComponentType,
-  requiresAuth = true
-) => {
-  return ({ user }: { user: AuthState['user'] }) => {
-    if (requiresAuth && !user) {
-      return <Navigate to="/login" />;
-    }
-    if (!requiresAuth && user) {
-      return <Navigate to="/" />;
-    }
-    return (
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <Component />
-      </ErrorBoundary>
-    );
-  };
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuthStore();
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
 };
 
-export const routes: RouteConfig[] = [
+const routes: RouteConfig[] = [
   {
     path: '/',
-    component: Dashboard,
-    private: true,
+    element: <Navigate to="/dashboard" replace />,
+    protected: true,
   },
   {
-    path: '/login',
-    component: LoginPage,
-    private: false,
-  },
-  {
-    path: '/auth',
-    component: AuthForm,
-    private: false,
+    path: '/dashboard',
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Dashboard />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/settings',
-    component: Settings,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Settings />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/profile',
-    component: Profile,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Profile />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/images',
-    component: ImageBrowser,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <ImageBrowser />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/videos',
-    component: VideoBrowser,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <VideoBrowser />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/upload',
-    component: ContentUploader,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <ContentUploader />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
     path: '/upload/video',
-    component: VideoUpload,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <VideoUpload />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
-    path: '/social/connect',
-    component: ConnectAccounts,
-    private: true,
+    path: '/connect',
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <ConnectAccounts />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
-    path: '/social/upload',
-    component: SocialUploader,
-    private: true,
+    path: '/social',
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <SocialUploader />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
-    path: '/auth/tiktok/callback',
-    component: OAuthCallback,
+    path: '/oauth/callback',
+    element: (
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Suspense fallback={<LoadingSpinner />}>
+          <OAuthCallback />
+        </Suspense>
+      </ErrorBoundary>
+    ),
   },
   {
     path: '/subscription',
-    component: SubscriptionManagement,
-    private: true,
+    element: (
+      <ProtectedRoute>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingSpinner />}>
+            <SubscriptionManagement />
+          </Suspense>
+        </ErrorBoundary>
+      </ProtectedRoute>
+    ),
+    protected: true,
   },
   {
-    path: '/test/custom-platforms',
-    component: lazy(() => import('./pages/test/custom-platforms')) as unknown as ComponentType<any>,
-    private: true,
-  },
-  {
-    path: '*',
-    component: () => (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold">404</h1>
-          <p className="mt-2">Page not found</p>
-        </div>
-      </div>
+    path: '/auth',
+    element: (
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Suspense fallback={<LoadingSpinner />}>
+          <AuthForm />
+        </Suspense>
+      </ErrorBoundary>
     ),
   },
 ];
 
-export type RouteProps = {
-  user: AuthState['user'];
-};
+export default function AppRoutes() {
+  return (
+    <Router>
+      <Routes>
+        {routes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={route.element}
+          />
+        ))}
+      </Routes>
+    </Router>
+  );
+}
